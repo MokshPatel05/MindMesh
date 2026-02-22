@@ -207,6 +207,7 @@ export default function Authentication() {
               {formState === 0 ? "Don't have an account? " : 'Already have an account? '}
               <Link
                 component="button"
+                type="button"
                 variant="body2"
                 onClick={() => setFormState(formState === 0 ? 1 : 0)}
                 sx={{
