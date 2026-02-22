@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom';
 import io from "socket.io-client";
-import { Badge, IconButton, TextField } from '@mui/material';
-import { Button } from '@mui/material';
+import { Badge, IconButton, TextField, Button, Box, Typography } from '@mui/material';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import VideocamOffIcon from '@mui/icons-material/VideocamOff'
 import styles from "../styles/videoComponent.module.css";
@@ -11,6 +11,7 @@ import MicOffIcon from '@mui/icons-material/MicOff'
 import ScreenShareIcon from '@mui/icons-material/ScreenShare';
 import StopScreenShareIcon from '@mui/icons-material/StopScreenShare'
 import ChatIcon from '@mui/icons-material/Chat'
+import VideocamRoundedIcon from '@mui/icons-material/VideocamRounded'
 import server from '../environment';
 
 const server_url = server;
@@ -24,7 +25,7 @@ const peerConfigConnections = {
 }
 
 export default function VideoMeetComponent() {
-
+    const navigate = useNavigate();
     var socketRef = useRef();
     let socketIdRef = useRef();
 
@@ -402,10 +403,15 @@ export default function VideoMeetComponent() {
 
     let handleEndCall = () => {
         try {
-            let tracks = localVideoref.current.srcObject.getTracks()
-            tracks.forEach(track => track.stop())
+            if (localVideoref.current?.srcObject) {
+                localVideoref.current.srcObject.getTracks().forEach(track => track.stop());
+            }
         } catch (e) { }
-        window.location.href = "/"
+        if (socketRef.current) {
+            socketRef.current.disconnect();
+        }
+        // Navigate to home if logged in, otherwise to landing page
+        navigate(localStorage.getItem("token") ? "/home" : "/");
     }
 
     let openChat = () => {
@@ -449,77 +455,133 @@ export default function VideoMeetComponent() {
     return (
         <div>
 
-            {askForUsername === true ?
+            {askForUsername === true ? (
 
-                <div>
-
-
-                    <h2>Enter into Lobby </h2>
-                    <TextField id="outlined-basic" label="Username" value={username} onChange={e => setUsername(e.target.value)} variant="outlined" />
-                    <Button variant="contained" onClick={connect}>Connect</Button>
-
-
-                    <div>
-                        <video ref={localVideoref} autoPlay muted></video>
+                <div className={styles.lobbyContainer}>
+                    <div className={styles.lobbyCard}>
+                        <VideocamRoundedIcon sx={{ fontSize: 56, color: 'primary.main', mb: 1 }} />
+                        <Typography variant="h5" sx={{ fontWeight: 700, color: 'white', mb: 0.5 }}>
+                            Join the meeting
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+                            Enter your display name to continue
+                        </Typography>
+                        <TextField
+                            fullWidth
+                            label="Display name"
+                            value={username}
+                            onChange={e => setUsername(e.target.value)}
+                            variant="outlined"
+                            sx={{ mb: 2 }}
+                        />
+                        <div className={styles.lobbyPreview}>
+                            <video ref={localVideoref} autoPlay muted></video>
+                        </div>
+                        <Button
+                            fullWidth
+                            variant="contained"
+                            size="large"
+                            onClick={connect}
+                            sx={{ mt: 2, py: 1.5, fontWeight: 600 }}
+                        >
+                            Join now
+                        </Button>
                     </div>
-
-                </div> :
+                </div>
+            ) : (
 
 
                 <div className={styles.meetVideoContainer}>
 
                     {showModal ? <div className={styles.chatRoom}>
-
                         <div className={styles.chatContainer}>
                             <h1>Chat</h1>
-
                             <div className={styles.chattingDisplay}>
-
-                                {messages.length !== 0 ? messages.map((item, index) => {
-
-                                    console.log(messages)
-                                    return (
-                                        <div style={{ marginBottom: "20px" }} key={index}>
-                                            <p style={{ fontWeight: "bold" }}>{item.sender}</p>
-                                            <p>{item.data}</p>
-                                        </div>
-                                    )
-                                }) : <p>No Messages Yet</p>}
-
-
+                                {messages.length !== 0 ? messages.map((item, index) => (
+                                    <Box key={index} sx={{ mb: 2 }}>
+                                        <Typography sx={{ fontWeight: 600, color: 'primary.main', fontSize: '0.875rem' }}>
+                                            {item.sender}
+                                        </Typography>
+                                        <Typography sx={{ color: 'text.primary' }}>{item.data}</Typography>
+                                    </Box>
+                                )) : (
+                                    <Typography sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>
+                                        No messages yet. Say hello!
+                                    </Typography>
+                                )}
                             </div>
-
                             <div className={styles.chattingArea}>
-                                <TextField value={message} onChange={(e) => setMessage(e.target.value)} id="outlined-basic" label="Enter Your chat" variant="outlined" />
-                                <Button variant='contained' onClick={sendMessage}>Send</Button>
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    value={message}
+                                    onChange={(e) => setMessage(e.target.value)}
+                                    label="Type a message"
+                                    variant="outlined"
+                                />
+                                <Button variant="contained" onClick={sendMessage} sx={{ minWidth: 80 }}>
+                                    Send
+                                </Button>
                             </div>
-
-
                         </div>
-                    </div> : <></>}
+                    </div> : null}
 
 
                     <div className={styles.buttonContainers}>
-                        <IconButton onClick={handleVideo} style={{ color: "white" }}>
-                            {(video === true) ? <VideocamIcon /> : <VideocamOffIcon />}
+                        <IconButton
+                            onClick={handleVideo}
+                            sx={{
+                                color: video ? 'white' : '#ef4444',
+                                bgcolor: 'rgba(255,255,255,0.1)',
+                                '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+                            }}
+                        >
+                            {video ? <VideocamIcon /> : <VideocamOffIcon />}
                         </IconButton>
-                        <IconButton onClick={handleEndCall} style={{ color: "red" }}>
-                            <CallEndIcon  />
+                        <IconButton
+                            onClick={handleEndCall}
+                            sx={{
+                                color: 'white',
+                                bgcolor: '#ef4444',
+                                '&:hover': { bgcolor: '#dc2626' },
+                            }}
+                        >
+                            <CallEndIcon />
                         </IconButton>
-                        <IconButton onClick={handleAudio} style={{ color: "white" }}>
-                            {audio === true ? <MicIcon /> : <MicOffIcon />}
+                        <IconButton
+                            onClick={handleAudio}
+                            sx={{
+                                color: audio ? 'white' : '#ef4444',
+                                bgcolor: 'rgba(255,255,255,0.1)',
+                                '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+                            }}
+                        >
+                            {audio ? <MicIcon /> : <MicOffIcon />}
                         </IconButton>
-
-                        {screenAvailable === true ?
-                            <IconButton onClick={handleScreen} style={{ color: "white" }}>
-                                {screen === true ? <ScreenShareIcon /> : <StopScreenShareIcon />}
-                            </IconButton> : <></>}
-
-                        <Badge badgeContent={newMessages} max={999} color='orange'>
-                            <IconButton onClick={() => setModal(!showModal)} style={{ color: "white" }}>
-                                <ChatIcon />                        </IconButton>
+                        {screenAvailable && (
+                            <IconButton
+                                onClick={handleScreen}
+                                sx={{
+                                    color: 'white',
+                                    bgcolor: screen ? 'rgba(20, 184, 166, 0.3)' : 'rgba(255,255,255,0.1)',
+                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+                                }}
+                            >
+                                {screen ? <StopScreenShareIcon /> : <ScreenShareIcon />}
+                            </IconButton>
+                        )}
+                        <Badge badgeContent={newMessages} max={999} color="primary">
+                            <IconButton
+                                onClick={() => setModal(!showModal)}
+                                sx={{
+                                    color: 'white',
+                                    bgcolor: showModal ? 'rgba(20, 184, 166, 0.3)' : 'rgba(255,255,255,0.1)',
+                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+                                }}
+                            >
+                                <ChatIcon />
+                            </IconButton>
                         </Badge>
-
                     </div>
 
 
@@ -546,9 +608,7 @@ export default function VideoMeetComponent() {
                     </div>
 
                 </div>
-
-            }
-
+            )}
         </div>
     )
 }

@@ -4,12 +4,13 @@ import bcrypt, { hash } from "bcrypt"
 
 import crypto from "crypto"
 import { Meeting } from "../models/meeting.model.js";
+
 const login = async (req, res) => {
 
     const { username, password } = req.body;
 
     if (!username || !password) {
-        return res.status(400).json({ message: "Please Provide" })
+        return res.status(400).json({ message: "Invalid Credentials" })
     }
 
     try {
@@ -47,7 +48,7 @@ const register = async (req, res) => {
             return res.status(httpStatus.FOUND).json({ message: "User already exists" });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, 12);
 
         const newUser = new User({
             name: name,
@@ -56,7 +57,6 @@ const register = async (req, res) => {
         });
 
         await newUser.save();
-
         res.status(httpStatus.CREATED).json({ message: "User Registered" })
 
     } catch (e) {

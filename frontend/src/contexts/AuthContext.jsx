@@ -44,10 +44,8 @@ export const AuthProvider = ({ children }) => {
             let request = await client.post("/login", {
                 username: username,
                 password: password
-            });
 
-            console.log(username, password)
-            console.log(request.data)
+            });
 
             if (request.status === httpStatus.OK) {
                 localStorage.setItem("token", request.data.token);

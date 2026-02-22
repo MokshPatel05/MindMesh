@@ -4,6 +4,13 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// Suppress benign ResizeObserver error (common with MUI, doesn't affect functionality)
+const originalOnError = window.onerror;
+window.onerror = function (msg, ...args) {
+    if (typeof msg === 'string' && msg.includes('ResizeObserver loop')) return true;
+    return originalOnError ? originalOnError.apply(this, [msg, ...args]) : false;
+};
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
